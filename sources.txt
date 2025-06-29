@@ -1,0 +1,16 @@
+##pothole datasets from
+
+@misc{roboflow_pothole_dataset,
+  title        = {Pothole Dataset},
+  author       = {Atikur Rahman Chitholian},
+  howpublished = {\url{https://public.roboflow.com/object-detection/pothole}},
+  note         = {Open Data Commons ODbL v1.0, split 70/20/10 by Roboflow},
+  year         = {2020},
+  urldate      = {2025-06-28}
+}
+
+
+Chitholian, A. R. Pothole Dataset. Roboflow Universe, ODbL v1.0.
+Available at: https://public.roboflow.com/object-detection/pothole.
+Accessed 28 June 2025.
+

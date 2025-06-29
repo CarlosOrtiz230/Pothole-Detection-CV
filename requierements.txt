@@ -1,0 +1,20 @@
+# --- Core numeric & array ops ---
+numpy>=1.25
+
+# --- Image I/O & lightweight processing ---
+Pillow>=10.0          # for from PIL import Image
+imageio>=2.34         # optional: for read/write multi-format images
+
+# --- Heavier CV utilities ---
+opencv-python>=4.10   # for cv2: advanced image operations, video, drawing
+scikit-image>=0.23    # for geometric transforms, filtering, morphology
+scikit-learn>=1.5     # optional: clustering, evaluation metrics
+
+# --- Plotting / notebook support ---
+matplotlib>=3.9       # for debugging, visualizing detections
+jupyterlab>=4.2       # for experiments in notebook format
+
+# --- Testing & style helpers ---
+pytest>=8.2           # for automated testing
+black>=24.4           # code formatting
+flake8>=7.0           # code linting
