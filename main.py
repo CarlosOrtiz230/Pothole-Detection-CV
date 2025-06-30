@@ -5,6 +5,7 @@ import random
 from pathlib import Path
 
 import numpy as np
+import matplotlib.pyplot as plt
 from PIL import Image
 from detectors.centered import detect as detect_centered
 from detectors.angled import detect as detect_angled
@@ -50,14 +51,14 @@ def run_on_image(path, detector_fn):
 
 
 def run_batch(paths, detector_fn):
-    print(f"\n▶ Running on {len(paths)} images...\n")
+    print(f"\n Running on {len(paths)} images...\n")
     for path in paths:
         run_on_image(path, detector_fn)
 
 
 def main():
     # Choose analysis type
-    print("\n📌 Choose analysis type:")
+    print("\n Choose analysis type:")
     for idx, name in enumerate(DETECTORS.keys(), 1):
         print(f"  {idx}. {name}")
     try:
