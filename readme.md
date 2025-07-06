@@ -13,3 +13,22 @@ This project aims to detect potholes in road images using **classical computer v
 
 ##  Project Structure
 
+Pothole-Detection-CV/
+├── main.py                # CLI: runs detector on images
+├── requirements.txt       # pip packages
+├── README.md              # Project overview
+
+├── samples/               # 600 test images
+│   └── *.jpg / *.png
+
+├── detector.py            #  Unified detection logic: contour + scoring
+│
+├── features.py            # Feature extractors:
+│   ├── get_darkness()
+│   ├── get_texture()
+│   ├── get_orb_density()
+│   ├── check_shape(), etc.
+│
+└── utils/
+    ├── preprocess.py      # to_gray(), blur, etc.
+    └── draw.py            # draw_box(), overlay_confidence()

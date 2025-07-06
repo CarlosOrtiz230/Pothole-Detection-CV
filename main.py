@@ -3,108 +3,71 @@
 import sys
 import random
 from pathlib import Path
-
+import cv2
 import numpy as np
-import matplotlib.pyplot as plt
-from PIL import Image
-from detectors.centered import detect as detect_centered
-from detectors.angled import detect as detect_angled
-from detectors.far import detect as detect_far
+
+from detector import detect_best_pothole  # unified detection function
 from utils.draw import draw_box
 from utils.preprocess import to_gray
 
-# Folder with test images
+# Directory with test images
 SAMPLES_DIR = Path(__file__).parent / "samples"
 
-# Register detectors
-DETECTORS = {
-    "centered": detect_centered,
-    "angled": detect_angled,
-    "far": detect_far,
-}
-
-
+# List image files
 def list_images():
     exts = {".jpg", ".jpeg", ".png", ".bmp"}
     return sorted(p for p in SAMPLES_DIR.glob("*") if p.suffix.lower() in exts)
 
-
+# Load image and convert to RGB
 def load_image(path: Path) -> np.ndarray:
-    return np.asarray(Image.open(path).convert("RGB"))
+    img_bgr = cv2.imread(str(path))
+    if img_bgr is None:
+        raise ValueError(f"Could not load image: {path}")
+    return cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
+# Show image with OpenCV
+def show_image(img_rgb: np.ndarray, title="Detection Result"):
+    img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+    cv2.imshow(title, img_bgr)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
-def show_image(img: np.ndarray):
-    Image.fromarray(img).show()
-
-
-def run_on_image(path, detector_fn):
+# Run detection on one image
+def run_on_image(path: Path, debug=False):
     img = load_image(path)
-    score, box = detector_fn(img)  # detector returns confidence, box
-    print(f"\n {path.name} → confidence: {score:.2f}")
-    if score >= 0.5:
+    confidence, box = detect_best_pothole(img, debug=debug)
+
+    print(f"\n{path.name} → confidence: {confidence:.2f}")
+    if confidence >= 0.5:
         print(" POTHOLE DETECTED!")
-        img_marked = draw_box(img.copy(), box, color=(255, 0, 0))
-        show_image(img_marked)
+        img_boxed = draw_box(img.copy(), box, color=(255, 0, 0))
+        show_image(img_boxed)
     else:
         print(" No pothole detected.")
         show_image(img)
 
-
-def run_batch(paths, detector_fn):
-    print(f"\n Running on {len(paths)} images...\n")
+# Run detection on a batch of images
+def run_batch(paths, debug=False):
+    print(f"\nRunning on {len(paths)} images...\n")
     for path in paths:
-        run_on_image(path, detector_fn)
+        run_on_image(path, debug=debug)
 
-
+# CLI menu
 def main():
-    # Choose analysis type
-    print("\n Choose analysis type:")
-    for idx, name in enumerate(DETECTORS.keys(), 1):
-        print(f"  {idx}. {name}")
-    try:
-        d_choice = int(input("Select detector [1-3]: "))
-        d_key = list(DETECTORS.keys())[d_choice - 1]
-        detector_fn = DETECTORS[d_key]
-    except:
-        sys.exit("Invalid detector selection.")
-
-    # Choose mode
-    print("\n Choose mode:")
-    print("  1. One image (manual pick)")
-    print("  2. A few random samples")
-    print("  3. All images")
-    try:
-        m_choice = int(input("Select mode [1-3]: "))
-    except:
-        sys.exit("Invalid mode selection.")
-
     paths = list_images()
     if not paths:
-        sys.exit(" No images found in samples/")
+        sys.exit("No images found in samples/")
 
-    if m_choice == 1:
-        # One image
-        print("\n📷 Available images:")
-        for idx, path in enumerate(paths, 1):
-            print(f"  {idx}. {path.name}")
-        try:
-            i_choice = int(input("Choose image [1-n]: "))
-            run_on_image(paths[i_choice - 1], detector_fn)
-        except:
-            sys.exit("Invalid image selection.")
+    print("\nChoose mode:")
+    print("  1. One image")
+    print("  2. Random sample")
+    print("  3. All images")
+    try:
+        mode = int(input("Select [1-3]: "))
+    except:
+        sys.exit("Invalid input")
 
-    elif m_choice == 2:
-        # Sample batch
-        subset = random.sample(paths, min(5, len(paths)))
-        run_batch(subset, detector_fn)
+    debug = input("Enable debug mode? (y/n): ").strip().lower() == "y"
 
-    elif m_choice == 3:
-        # All images
-        run_batch(paths, detector_fn)
-
-    else:
-        sys.exit("Invalid mode selected.")
-
-
-if __name__ == "__main__":
-    main()
+    if mode == 1:
+        print

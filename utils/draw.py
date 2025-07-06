@@ -1,28 +1,20 @@
-import numpy as np
+import cv2
 
-def draw_box(img: np.ndarray, box: tuple, color=(255, 0, 0)) -> np.ndarray:
+def draw_box(img, box, color=(0, 255, 0), label=None):
     """
-    Draws a rectangle on the image using NumPy.
+    Draws a rectangle and optional label on the image.
 
     Args:
         img (np.ndarray): RGB image.
         box (tuple): (x, y, w, h)
-        color (tuple): RGB color
-
-    Returns:
-        np.ndarray: Image with rectangle drawn.
+        color (tuple): RGB color.
+        label (str): Optional label text.
     """
     x, y, w, h = box
-    # Clamp coordinates
-    h_img, w_img = img.shape[:2]
-    x0, x1 = max(x, 0), min(x + w, w_img)
-    y0, y1 = max(y, 0), min(y + h, h_img)
+    cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
 
-    # Top and bottom lines
-    img[y0:y0+2, x0:x1] = color
-    img[y1-2:y1, x0:x1] = color
-    # Left and right lines
-    img[y0:y1, x0:x0+2] = color
-    img[y0:y1, x1-2:x1] = color
+    if label:
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        cv2.putText(img, label, (x, y - 5), font, 0.5, color, 1, cv2.LINE_AA)
 
     return img
