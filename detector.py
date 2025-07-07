@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 from utils.preprocess import to_gray
+
 from features import (
     get_darkness_score,
     get_texture_score,
