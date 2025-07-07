@@ -3,10 +3,11 @@ import random
 from pathlib import Path
 import cv2
 import numpy as np
+import argparse
 
 from detector import detect_best_pothole
 from utils.draw import draw_box
-from utils.preprocess import to_gray
+from utils.preprocess import to_gray, load_and_resize
 
 ROOT_SAMPLES_DIR = Path(__file__).parent / "samples"
 
@@ -20,10 +21,7 @@ def list_images(folder: Path):
     return sorted(p for p in folder.glob("*") if p.suffix.lower() in exts)
 
 def load_image(path: Path) -> np.ndarray:
-    img_bgr = cv2.imread(str(path))
-    if img_bgr is None:
-        raise ValueError(f"Could not load image: {path}")
-    return cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    return load_and_resize(path)
 
 def show_image(img: np.ndarray):
     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
@@ -75,6 +73,14 @@ def hybrid_test(num_each=5, debug=False, show=False):
     print(f"\n[SUMMARY] Correct: {correct}/{total} ({100*correct/total:.1f}%)")
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--testing", action="store_true", help="Run quick hybrid test with 3+3 images")
+    args = parser.parse_args()
+
+    if args.testing:
+        hybrid_test(num_each=3, debug=True, show=True)
+        return
+
     print("\nSelect test mode:")
     print("  1. One image (manual)")
     print("  2. Random clean samples")
