@@ -58,3 +58,4 @@ def get_orb_score(img, box, debug=False):
         print(f"[ORB] keypoints={len(keypoints)}, density={density:.5f}, score={score:.2f}")
 
     return float(score)
+
