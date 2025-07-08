@@ -25,3 +25,17 @@ def load_and_resize(path: Path, size=(512, 512)) -> np.ndarray:
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     img_rgb = cv2.resize(img_rgb, size, interpolation=cv2.INTER_AREA)
     return img_rgb
+
+def preprocess_with_otsu_and_erosion(gray):
+    # Apply CLAHE first
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(gray)
+
+    # Global OTSU threshold
+    _, binary = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    # Erosion with 3x3 kernel
+    kernel = np.ones((3, 3), np.uint8)
+    eroded = cv2.erode(binary, kernel, iterations=1)
+
+    return eroded

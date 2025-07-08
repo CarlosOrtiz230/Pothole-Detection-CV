@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
-from utils.preprocess import to_gray
-
+from utils.preprocess import to_gray, preprocess_with_otsu_and_erosion
 from features import (
     get_darkness_score,
     get_texture_score,
@@ -22,20 +21,34 @@ def detect_best_pothole(img, cfg=None, debug=False):
     p = {**CFG, **(cfg or {})}
     gray = to_gray(img)
 
-    # --- Preprocess ---
-    blurred = cv2.GaussianBlur(gray, p['blur_kernel'], 0)
+    results = []
 
-    # --- Threshold to isolate dark regions ---
-    binary = cv2.adaptiveThreshold(
+    # --- OTSU path ---
+    mask_otsu = preprocess_with_otsu_and_erosion(gray)
+    results.append(_get_best_from_mask(mask_otsu, img, gray, p, debug, label="OTSU"))
+
+    # --- Adaptive Threshold path ---
+    blurred = cv2.GaussianBlur(gray, p['blur_kernel'], 0)
+    mask_adapt = cv2.adaptiveThreshold(
         blurred, 255,
         cv2.ADAPTIVE_THRESH_MEAN_C,
         cv2.THRESH_BINARY_INV,
         p['adaptive_blocksize'],
         p['adaptive_C']
     )
+    results.append(_get_best_from_mask(mask_adapt, img, gray, p, debug, label="ADAPTIVE"))
 
-    # --- Find contours ---
+    # --- Return best of both ---
+    best_conf, best_box = max(results, key=lambda x: x[0])
+    if best_conf >= p['confidence_thresh']:
+        return best_conf, best_box
+    return 0.0, (0, 0, 1, 1)
+
+# --- Helper for extracting best candidate from a binary mask ---
+def _get_best_from_mask(binary, img, gray, p, debug=False, label=""):
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if debug:
+        print(f"[{label}] Found {len(contours)} contours")
 
     best_conf = 0.0
     best_box = None
@@ -47,8 +60,6 @@ def detect_best_pothole(img, cfg=None, debug=False):
             continue
 
         roi = gray[y:y+h, x:x+w]
-
-        # Feature scoring
         c_dark   = get_darkness_score(roi, debug)
         c_tex    = get_texture_score(roi, debug)
         c_shape  = get_shape_score(cnt, debug)
@@ -62,13 +73,10 @@ def detect_best_pothole(img, cfg=None, debug=False):
         )
 
         if debug:
-            print(f"[CANDIDATE] @({x},{y},{w},{h}) → conf: {confidence:.2f}")
+            print(f"[{label}] CANDIDATE @({x},{y},{w},{h}) → conf: {confidence:.2f}")
 
         if confidence > best_conf:
             best_conf = confidence
             best_box = (x, y, w, h)
 
-    if best_conf >= p['confidence_thresh'] and best_box:
-        return best_conf, best_box
-    else:
-        return 0.0, (0, 0, 1, 1)  # No valid pothole
+    return best_conf, best_box

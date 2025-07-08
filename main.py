@@ -1,19 +1,29 @@
 import sys
 import random
+import argparse
 from pathlib import Path
 import cv2
 import numpy as np
-import argparse
 
-from detector import detect_best_pothole
+# Core tools
 from utils.draw import draw_box
-from utils.preprocess import to_gray, load_and_resize
+from utils.preprocess import load_and_resize
+
+# Default detector
+from detector import detect_best_pothole
+# Easy mode detector
+from detector_easy import detect_best_pothole as detect_easy_pothole
 
 ROOT_SAMPLES_DIR = Path(__file__).parent / "samples"
 
 LABEL_MAP = {
     "potholes_samples": 1,
     "clean_samples": 0
+}
+
+EASY_LABEL_MAP = {
+    "poteholes_easy_samples": 1,
+    "clean_easy_samples": 0
 }
 
 def list_images(folder: Path):
@@ -35,9 +45,11 @@ def clean_filename(path: Path) -> str:
         name = name.split("jpg.rf.")[-1][:12]
     return name + path.suffix
 
-def detect_and_check(path: Path, true_label: int, debug=False, show=False):
+def detect_and_check(path: Path, true_label: int, debug=False, show=False, use_easy=False):
     img = load_image(path)
-    conf, box = detect_best_pothole(img, debug=debug)
+    detector = detect_easy_pothole if use_easy else detect_best_pothole
+    conf, box = detector(img, debug=debug)
+
     predicted = int(conf >= 0.5)
     correct = (predicted == true_label)
     label_name = "POTHOLE" if predicted else "CLEAN"
@@ -50,6 +62,30 @@ def detect_and_check(path: Path, true_label: int, debug=False, show=False):
         show_image(img_marked)
 
     return correct
+
+def run_easy_mode():
+    print("[INFO] Running EASY mode with detector_easy.py")
+    easy_root = ROOT_SAMPLES_DIR / "easy_samples"
+
+    total = 0
+    correct = 0
+    all_paths = []
+
+    for folder_name, label in EASY_LABEL_MAP.items():
+        folder = easy_root / folder_name
+        if not folder.exists():
+            sys.exit(f"[ERROR] Folder not found: {folder}")
+        images = list_images(folder)
+        all_paths.extend((p, label) for p in images)
+
+    random.shuffle(all_paths)
+
+    for path, label in all_paths:
+        if detect_and_check(path, label, debug=True, show=True, use_easy=True):
+            correct += 1
+        total += 1
+
+    print(f"\n[EASY SUMMARY] Correct: {correct}/{total} ({100 * correct / total:.1f}%)")
 
 def hybrid_test(num_each=5, debug=False, show=False):
     folders = ["potholes_samples", "clean_samples"]
@@ -70,12 +106,17 @@ def hybrid_test(num_each=5, debug=False, show=False):
         if detect_and_check(path, label, debug=debug, show=show):
             correct += 1
 
-    print(f"\n[SUMMARY] Correct: {correct}/{total} ({100*correct/total:.1f}%)")
+    print(f"\n[SUMMARY] Correct: {correct}/{total} ({100 * correct / total:.1f}%)")
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--testing", action="store_true", help="Run quick hybrid test with 3+3 images")
+    parser.add_argument("--easy", action="store_true", help="Use easy_samples + detector_easy.py")
     args = parser.parse_args()
+
+    if args.easy:
+        run_easy_mode()
+        return
 
     if args.testing:
         hybrid_test(num_each=3, debug=True, show=True)
@@ -120,7 +161,7 @@ def main():
         for p in subset:
             if detect_and_check(p, label, debug=debug, show=show):
                 correct += 1
-        print(f"\n[SUMMARY] Correct: {correct}/{len(subset)} ({100*correct/len(subset):.1f}%)")
+        print(f"\n[SUMMARY] Correct: {correct}/{len(subset)} ({100 * correct / len(subset):.1f}%)")
 
     elif choice == 4:
         n = int(input("How many from each category?: "))
